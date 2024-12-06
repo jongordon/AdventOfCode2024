@@ -1,4 +1,4 @@
-// Input
+﻿// Input
 string[] lines = File.ReadAllLines($"{Directory.GetCurrentDirectory()}/input.txt");
 
 // Split rules and updates
@@ -51,3 +51,33 @@ for (int i = updates.Count - 1; i >= 0; i--)    // Iterate backwards to allow sa
 
 System.Console.WriteLine(middlePages.Sum());
 
+// Part 2
+middlePages.Clear();
+foreach (var update in updates)
+{
+    bool madeChanges;
+    do
+    {
+        madeChanges = false;
+        // Check every rule, and swap the numbers if they are in the wrong order
+        foreach (var (first, second) in rules)
+        {
+            int firstPageIndex = Array.IndexOf(update, first);
+            int secondPageIndex = Array.IndexOf(update, second);
+            if (firstPageIndex != -1 && secondPageIndex != -1)
+            {
+                if (firstPageIndex >= secondPageIndex)
+                {
+                    update[firstPageIndex] = second;
+                    update[secondPageIndex] = first;
+                    madeChanges = true;
+                }
+            }
+        }
+    } while (madeChanges);
+            
+    int middleIndex = update.Length / 2;
+    middlePages.Add(update[middleIndex]);
+}
+
+System.Console.WriteLine(middlePages.Sum());
