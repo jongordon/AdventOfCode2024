@@ -1,4 +1,4 @@
-// Input
+﻿// Input
 List<int> colA = new List<int>();
 List<int> colB = new List<int>();
 
@@ -20,3 +20,19 @@ for (int i = 0; i < colA.Count; i++)
 }
 Console.WriteLine(sumDiff);
 
+// Part 2
+int simScore = 0;
+foreach (int a in colA)
+{
+    int countB = 0;
+    foreach (int b in colB)
+    {
+        if (a == b)
+        {
+            ++countB;
+        }
+    }
+
+    simScore += a * countB;
+}
+Console.WriteLine(simScore);
