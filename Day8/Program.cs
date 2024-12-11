@@ -1,9 +1,7 @@
-﻿// Input
+﻿// Read the input file
 string[] lines = File.ReadAllLines("input.txt");
 var height = lines.Length;
 var width = lines[0].Length;
-
-// Part 1
 
 // Store antenna positions by frequency
 var antennasByFreq = new Dictionary<char, List<(int x, int y)>>();
@@ -31,6 +29,16 @@ foreach (var freq in antennasByFreq.Keys)
 {
     var antennas = antennasByFreq[freq];
     
+    // If there's more than one antenna of this frequency,
+    // all antenna positions of this frequency are antinodes
+    if (antennas.Count > 1)
+    {
+        foreach (var ant in antennas)
+        {
+            antinodes.Add(ant);
+        }
+    }
+    
     // Check each pair of antennas with the same frequency
     for (int i = 0; i < antennas.Count; i++)
     {
@@ -42,33 +50,67 @@ foreach (var freq in antennasByFreq.Keys)
             // Calculate the vector between antennas
             int dx = ant2.x - ant1.x;
             int dy = ant2.y - ant1.y;
-            double distance = Math.Sqrt(dx * dx + dy * dy);
 
-            // Calculate unit vector
-            double ux = dx / distance;
-            double uy = dy / distance;
+            // Check all points on the line between and beyond the antennas
+            // Find the GCD to get the smallest step size that will hit all grid points
+            int gcd = GCD(Math.Abs(dx), Math.Abs(dy));
+            if (gcd == 0) gcd = 1;
+            
+            // Unit vector in grid coordinates
+            int ux = dx / gcd;
+            int uy = dy / gcd;
 
-            // Calculate antinode positions
-            // First antinode: extend beyond ant1 by distance
-            int antinode1X = (int)Math.Round(ant1.x - ux * distance);
-            int antinode1Y = (int)Math.Round(ant1.y - uy * distance);
+            // Extend line in both directions until we hit map boundaries
+            // Start from ant1 and go backwards
+            int x = ant1.x;
+            int y = ant1.y;
+            while (IsInBounds(x - ux, y - uy, width, height))
+            {
+                x -= ux;
+                y -= uy;
+                antinodes.Add((x, y));
+            }
 
-            // Second antinode: extend beyond ant2 by distance
-            int antinode2X = (int)Math.Round(ant2.x + ux * distance);
-            int antinode2Y = (int)Math.Round(ant2.y + uy * distance);
-
-            // Add antinodes if they're within bounds
-            if (IsInBounds(antinode1X, antinode1Y, width, height))
-                antinodes.Add((antinode1X, antinode1Y));
-            if (IsInBounds(antinode2X, antinode2Y, width, height))
-                antinodes.Add((antinode2X, antinode2Y));
+            // Start from ant2 and go forwards
+            x = ant2.x;
+            y = ant2.y;
+            while (IsInBounds(x + ux, y + uy, width, height))
+            {
+                x += ux;
+                y += uy;
+                antinodes.Add((x, y));
+            }
         }
     }
 }
 
 Console.WriteLine($"{antinodes.Count}");
 
+// Optional: Print the map with antinodes for visualization
+for (int y = 0; y < height; y++)
+{
+    for (int x = 0; x < width; x++)
+    {
+        if (antinodes.Contains((x, y)))
+            Console.Write('#');
+        else
+            Console.Write(lines[y][x]);
+    }
+    Console.WriteLine();
+}
+
 static bool IsInBounds(int x, int y, int width, int height)
 {
     return x >= 0 && x < width && y >= 0 && y < height;
+}
+
+static int GCD(int a, int b)
+{
+    while (b != 0)
+    {
+        int temp = b;
+        b = a % b;
+        a = temp;
+    }
+    return a;
 }
