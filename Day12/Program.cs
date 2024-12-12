@@ -1,106 +1,82 @@
-﻿using System;
-using System.Collections.Generic;
-using System.IO;
-using System.Linq;
+﻿using System.Numerics;
 
-class Program
-{
-    static void Main()
+string[] lines = File.ReadAllLines("input.txt");
+List<Vector2> usedPlots = [];
+long[] totals = [0, 0];
+
+for (int y = 0; y < lines.Length; y++)
+{ 
+    for (int x = 0; x < lines[y].Length; x++)
     {
-        // Read the grid from input.txt
-        string[] lines = File.ReadAllLines("input.txt");
-        char[,] grid = new char[lines.Length, lines[0].Length];
-
-        // Convert input to 2D array
-        for (int i = 0; i < lines.Length; i++)
+        if (!usedPlots.Contains(new Vector2(x, y)))
         {
-            for (int j = 0; j < lines[i].Length; j++)
-            {
-                grid[i, j] = lines[i][j];
-            }
-        }
+            Dictionary<Vector2, List<Vector2>> edges = [];
 
-        // Keep track of visited cells
-        bool[,] visited = new bool[grid.GetLength(0), grid.GetLength(1)];
-        
-        // Dictionary to store results for each region
-        Dictionary<char, List<(int size, int perimeter)>> regions = new Dictionary<char, List<(int size, int perimeter)>>();
-
-        // Process each cell in the grid
-        for (int i = 0; i < grid.GetLength(0); i++)
-        {
-            for (int j = 0; j < grid.GetLength(1); j++)
-            {
-                if (!visited[i, j])
+            void Path(Vector2 pos, char ch)
+            {   
+                // Recursive pathfinding in garden plot made of ch
+                edges.Add(pos, []);
+                for (int x = -1; x <= 1; x++)
                 {
-                    var (size, perimeter) = ExploreRegion(grid, visited, i, j);
-                    char letter = grid[i, j];
-                    
-                    if (!regions.ContainsKey(letter))
-                        regions[letter] = new List<(int size, int perimeter)>();
-                    
-                    regions[letter].Add((size, perimeter));
+                    for (int y = -1; y <= 1; y++)
+                    {   // Gather edge data and move to next tile
+                        if (x != 0 && y != 0) continue; // No diagonal
+                        Vector2 n = pos + new Vector2(x, y);
+                        if (n.X < 0 || n.X >= lines[0].Length || n.Y >= lines.Length || n.Y < 0)
+                        {   // Next pos is off the map
+                            edges[pos].Add(new Vector2(x, y));
+                            continue;
+                        }
+                        if (edges.ContainsKey(n)) continue;
+                        if (ch != lines[(int)n.Y][(int)n.X])
+                        {   
+                            // Next pos is not same character
+                            edges[pos].Add(new Vector2(x, y));
+                            continue;
+                        }
+                        Path(n, ch); // Move to next tile
+                    }
                 }
             }
-        }
 
-        // Print totals for each letter and total cost
-        long totalCost = 0;
-        foreach (var region in regions)
-        {
-            totalCost += region.Value.Sum(r => (long)r.size * r.perimeter);
-        }
+            char ch = lines[y][x];
+            Path(new Vector2(x, y), ch); // Map the garden
+            usedPlots.AddRange(edges.Keys); // No remapping
+            long perim = edges.Values.Select(e => e.Count).Sum();
+            totals[0] += edges.Keys.Count * perim; //Area * perim
+            long sides = 0;
+            List<List<Vector2>> usedCorners = [[], [], [], []];
+            foreach (var e in edges) // e = KVP[Vec2, List<Vec2>]
+            {   
+                // Each corner counts as a unique side!
+                int cornerId = 0;
+                for (int x2 = -1; x2 <= 1; x2++)
+                {
+                    for (int y2 = -1; y2 <= 1; y2++)
+                    {   // Analyze four courners (inside and outside)
+                        if (x2 == 0 || y2 == 0) continue; // diag only
+                        var used = usedCorners[cornerId++];
+                        bool edgeY = e.Value.Contains(new(0, y2));
+                        bool edgeX = e.Value.Contains(new(x2, 0));
+                        Vector2 pos2 = e.Key + new Vector2(x2, y2);
+                        if (edgeY && !edgeX && !used.Contains(e.Key) && edges.TryGetValue(pos2, out var v) && v.Contains(new Vector2(x2 * -1, 0)))
+                        {
+                            used.Add(e.Key);
+                            sides++;
+                        }
 
-        Console.WriteLine($"Total Cost = {totalCost}");
-    }
-
-    static (int size, int perimeter) ExploreRegion(char[,] grid, bool[,] visited, int row, int col)
-    {
-        // Check bounds and if already visited
-        if (row < 0 || row >= grid.GetLength(0) || col < 0 || col >= grid.GetLength(1) ||
-            visited[row, col])
-            return (0, 0);
-
-        char currentLetter = grid[row, col];
-        // This line was causing the issue - we were checking against currentLetter instead of the actual cell
-        if (currentLetter == '.') // Only return if it's not a valid letter (assuming '.' represents empty space)
-            return (0, 0);
-
-        visited[row, col] = true;
-        int size = 1;
-        int perimeter = 0;
-
-        // Check all four sides for perimeter calculation
-        perimeter += IsEdgeOrDifferentLetter(grid, row - 1, col, currentLetter) ? 1 : 0;
-        perimeter += IsEdgeOrDifferentLetter(grid, row + 1, col, currentLetter) ? 1 : 0;
-        perimeter += IsEdgeOrDifferentLetter(grid, row, col - 1, currentLetter) ? 1 : 0;
-        perimeter += IsEdgeOrDifferentLetter(grid, row, col + 1, currentLetter) ? 1 : 0;
-
-        // Recursively explore adjacent cells
-        var directions = new[] { (-1, 0), (1, 0), (0, -1), (0, 1) };
-        foreach (var (dr, dc) in directions)
-        {
-            var nextRow = row + dr;
-            var nextCol = col + dc;
-            
-            // Only explore if it's the same letter
-            if (nextRow >= 0 && nextRow < grid.GetLength(0) && 
-                nextCol >= 0 && nextCol < grid.GetLength(1) && 
-                grid[nextRow, nextCol] == currentLetter)
-            {
-                var (additionalSize, additionalPerimeter) = ExploreRegion(grid, visited, nextRow, nextCol);
-                size += additionalSize;
-                perimeter += additionalPerimeter;
+                        if (e.Value.Contains(new(x2, 0)) && e.Value.Contains(new(0, y2)))
+                        {
+                            sides++;
+                        }
+                    }
+                }
             }
+
+            totals[1] += edges.Keys.Count * sides; //Area * sides
         }
-
-        return (size, perimeter);
-    }
-
-    static bool IsEdgeOrDifferentLetter(char[,] grid, int row, int col, char letter)
-    {
-        if (row < 0 || row >= grid.GetLength(0) || col < 0 || col >= grid.GetLength(1))
-            return true;
-        return grid[row, col] != letter;
     }
 }
+
+Console.WriteLine(totals[0]);
+Console.WriteLine(totals[1]);
