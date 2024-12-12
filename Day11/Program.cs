@@ -43,3 +43,36 @@ void SplitStones(List<long> stones, int index)
     stones[index] = firstHalf;
     stones.Insert(index + 1, secondHalf);
 }
+
+// Part 2
+Dictionary<long, long> stonesFast = [];
+long total = 0;
+input.Split(' ').Select(long.Parse).ToList()
+    .ForEach(x => Process(x, 1, ref total));
+
+void Process(long stoneNum, long toAdd, ref long total)
+{
+    stonesFast.TryGetValue(stoneNum, out long amt);
+    stonesFast[stoneNum] = amt + toAdd;
+    total += toAdd;
+}
+
+for (int blink = 0; blink < 75; blink++)
+{
+    total = 0;
+    var list = stonesFast.ToList();
+    stonesFast.Clear();
+    foreach (var stone in list)
+        if (stone.Key == 0) Process(1, stone.Value, ref total);
+        else if (Math.Floor(Math.Log10(stone.Key) + 1) % 2 == 0)
+        {   // If digits are an even number, split the number
+            long tens = (long)Math.Pow(10, 
+                (int)Math.Floor(Math.Log10(stone.Key) + 1) / 2);
+            var left = stone.Key / tens;
+            var right = stone.Key % tens;
+            Process(left, stone.Value, ref total);
+            Process(right, stone.Value, ref total);
+        }
+        else Process(stone.Key * 2024, stone.Value, ref total);
+}
+Console.WriteLine(total);
