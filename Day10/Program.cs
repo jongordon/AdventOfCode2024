@@ -58,3 +58,40 @@ void FindTrails(int currentRow, int currentCol, int expectedValue, List<(int r, 
 }
 
 Console.WriteLine(validTrailCount);
+
+// Part 2
+int totalRating = 0;
+foreach (var start in trailHeads)
+{
+    var path = new List<(int r, int c)>
+    {
+        (start[0], start[1])
+    };
+    FindRatings(start[0], start[1], 1, path);   // DFS
+}
+
+void FindRatings(int currentRow, int currentCol, int expectedValue, List<(int r, int c)> currentPath)
+{
+    if (expectedValue == 10)
+    {
+        ++totalRating;
+        return;
+    }
+
+    foreach (var dir in directions)
+    {
+        int newRow = currentRow + dir[0];
+        int newCol = currentCol + dir[1];
+
+        if (newRow >= 0 && newRow < rows && 
+            newCol >= 0 && newCol < cols && 
+            grid[newRow, newCol] == expectedValue)
+        {
+            currentPath.Add((newRow, newCol));
+            FindRatings(newRow, newCol, expectedValue + 1, currentPath);
+            currentPath.RemoveAt(currentPath.Count - 1);
+        }
+    }
+}
+
+Console.WriteLine(totalRating);
