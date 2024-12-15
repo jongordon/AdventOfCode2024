@@ -1,5 +1,6 @@
 ﻿// Input
-using System.Runtime.CompilerServices;
+using System.Data.Common;
+using System.Reflection;
 
 string[] input = File.ReadAllLines("input.txt");
 int cols = 101, rows = 103;
@@ -13,7 +14,7 @@ foreach (var inStr in input)
     guard.position = new Coord { x = int.Parse(elements[1]), y = int.Parse(elements[2]) };
     guard.vector = new Coord { x = int.Parse(elements[4]), y = int.Parse(elements[5]) };
     guards.Add(guard);
-}
+}    
 
 // Part 1
 for (int i = 0; i < guards.Count; ++i)
@@ -61,6 +62,91 @@ for (q = 1; q < 4; ++q)
 }
 Console.WriteLine(safetyFactor);
 Console.WriteLine(quadrants[0] + quadrants[1] + quadrants[2] + quadrants[3] + discarded);   // Check we have all 500
+
+// Part 2
+List<int> maxRowChecks = new();
+int maxT = 0;
+
+// Step through all possible moves until back at start pos (rows * cols)
+for (int t = 1; t <= (rows * cols); ++t)
+{
+    map = new int[cols, rows];
+    for (int i = 0; i < guards.Count; ++i)
+    {
+        // Calculate 1 move
+        int x = guards[i].position.x + guards[i].vector.x;
+        x %= cols;
+        int y = guards[i].position.y + guards[i].vector.y;
+        y %= rows;
+
+        // Check out of bounds
+        if (x < 0) x = cols + x;
+        if (y < 0) y = rows + y;
+
+        // Place guard in end position
+        ++map[x, y];
+        guards[i] = new Guard {
+            position = new Coord { x = x, y = y },
+            vector = guards[i].vector
+        };
+    }
+
+    // Scan and count guards in a row
+    int maxRowInGridCheck = 0;
+    for (int y = 0; y < rows; y++)
+    {
+        int rowCheck = 0;
+        int maxRowCheck = 0;
+        for (int x = 0; x < cols; x++)
+        { 
+            // Look for a row of bots for a tree pattern
+            if (map[x, y] > 0) 
+            {
+                ++rowCheck; 
+                if (rowCheck > maxRowCheck) 
+                { 
+                    maxRowCheck = rowCheck; 
+                }
+            }
+            else
+            {
+                rowCheck = 0;
+            }
+        }
+        if (maxRowCheck > maxRowInGridCheck) maxRowInGridCheck = maxRowCheck;
+    }
+    if (t == 1) { maxRowChecks.Add(maxRowInGridCheck); }    // Need to add at least one
+    if (maxRowInGridCheck > maxRowChecks.Max())
+    {
+        Console.WriteLine(t);
+        PrintMap();
+        Console.WriteLine();
+        maxRowChecks.Add(maxRowInGridCheck);
+        maxT = t;
+    }
+}
+
+Console.WriteLine(maxT);
+
+void PrintMap()
+{
+    for (int y = 0; y < rows; y++)
+    {
+        for (int x = 0; x < cols; x++)
+        {
+            // Look for a row of bots for a tree pattern
+            if (map[x, y] > 0)
+            {
+                Console.Write('#');
+            }
+            else
+            {
+                Console.Write('.');
+            }
+        }
+        Console.WriteLine();
+    }
+}
 
 struct Coord
 {
