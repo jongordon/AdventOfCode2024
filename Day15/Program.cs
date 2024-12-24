@@ -127,7 +127,7 @@ void MoveRobot(char direction)
     }
     else if (grid[newRow, newCol] == '[' || grid[newRow, newCol] == ']')
     {
-        if (MoveBoxes(newRow, newCol, dY, dX))
+        if (TryMoveBoxes(newRow, newCol, dY, dX))
         {
             UpdateRobot(newRow, newCol); // Move the robot
         }
@@ -171,35 +171,47 @@ void PrintMap()
     }
 }
 
-bool MoveBoxes(int startRow, int startCol, int dY, int dX)
+bool TryMoveBoxes(int startRow, int startCol, int dY, int dX)
 {
     // Collect the positions of all the boxes in this direction
     List<(int, int)> boxesToMove = new List<(int, int)>();
     SearchBoxes(startRow, startCol, dY, dX, boxesToMove);
 
     // Check if we can move all parts in the desired direction
-    // foreach (var part in boxesToMove)
-    // {
-    //     int newRow = part.Item1 + dY;
-    //     int newCol = part.Item2 + dX;
+    foreach (var part in boxesToMove)
+    {
+        int newRow = part.Item1 + dY;
+        int newCol = part.Item2 + dX;
 
-    //     // Check if the new position is valid (not into an obstacle or off the grid)
-    //     if (newRow < 0 || newRow >= rows || newCol < 0 || newCol >= cols || (grid[newRow, newCol] != '.' && !boxesToMove.Contains((newRow, newCol))))
-    //     {
+        // Check if the new position is valid (not into an obstacle or off the grid)
+        if (newRow < 0 || newRow >= rows || newCol < 0 || newCol >= cols || (grid[newRow, newCol] != '.' && !boxesToMove.Contains((newRow, newCol))))
+        {
             return false;
-    //     }
-    // }
+        }
+    }
 
-    // // Move all parts
-    // foreach (var part in boxesToMove)
-    // {
-    //     int newRow = part.Item1 + dY;
-    //     int newCol = part.Item2 + dX;
-    //     grid[newRow, newCol] = grid[part.Item1, part.Item2];
-    //     grid[part.Item1, part.Item2] = '.';
-    // }
+    // Remove all ] entries from the list by scanning list backwards
+    for (int i = boxesToMove.Count - 1; i >= 0; i--)
+    {
+        if (grid[boxesToMove[i].Item1, boxesToMove[i].Item2] == ']')
+        {
+            grid[boxesToMove[i].Item1, boxesToMove[i].Item2] = '.';
+            boxesToMove.RemoveAt(i);
+        }
+    }
 
-    // return true;
+    // Move all parts - after reversing the list because we did a BFS
+    boxesToMove.Reverse();
+    foreach (var part in boxesToMove)
+    {
+        // Move [ part of box
+        grid[part.Item1, part.Item2] = '.';
+        grid[part.Item1 + dY, part.Item2 + dX] = '[';
+        // Add ] part of box
+        grid[part.Item1 + dY, part.Item2 + dX + 1] = ']';
+    }
+
+    return true;
 }
 
 void SearchBoxes(int row, int col, int dY, int dX, List<(int, int)> boxesToMove)
