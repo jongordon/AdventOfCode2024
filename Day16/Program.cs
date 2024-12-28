@@ -6,56 +6,101 @@ var nodes = new List<Node>();
 var start = new Node(0, 0, true, false);
 var end = new Node(0, 0, false, true);
 
-for (var r = 0; r < input.Length; r++)
-{
-    for (var c = 0; c < input[0].Length; c++)
-    {
-        if (!input[r][c].Equals('#'))
-        {
-            var node = new Node(c, r, input[r][c].Equals('S'), input[r][c].Equals('E'));
-            nodes.Add(node);
+// Part 1
+var minCost = initSearch(-1, -1);
+Console.WriteLine(minCost);
 
-            if (node.start)
+// Part 2
+var shortestPath = new List<Node> { end };
+buildPath(shortestPath, end);
+
+var seats = new HashSet<Tuple<int, int>>();
+foreach (var node in shortestPath)
+{
+    seats.Add(new Tuple<int, int>(node.x, node.y));
+    if (!node.start && !node.end && node.connections.Count != 2)
+    {
+        var cost = initSearch(node.x, node.y);
+        if (cost == minCost)
+        {
+            var path = new List<Node>();
+            buildPath(path, end);
+
+            foreach (var newNode in path)
             {
-                start = node;
-            }
-            else if (node.end)
-            {
-                end = node;
+                seats.Add(new Tuple<int, int>(newNode.x, newNode.y));
             }
         }
     }
 }
+Console.WriteLine(seats.Count + 1); // +1 for the starting point
 
-// Part 1
-// Create connections between adjacent nodes
-foreach (var node in nodes)
+int initSearch(int blockC, int blockR)
 {
-    foreach (var otherNode in nodes)
-    {
-        if (node != otherNode &&
-            ((Math.Abs(otherNode.x - node.x) <= 1 && otherNode.y == node.y) ||
-             (Math.Abs(otherNode.y - node.y) <= 1) && otherNode.x == node.x))
-        {
-            var e = new Edge(otherNode, 1);
+    nodes = [];
 
-            for (var i = 0; i < 4; i++)
+    for (var r = 0; r < input.Length; r++)
+    {
+        for (var c = 0; c < input[0].Length; c++)
+        {
+            if (!input[r][c].Equals('#') && !(r == blockR && c == blockC))
             {
-                if (otherNode.y - node.y == dirs[i, 0] && otherNode.x - node.x == dirs[i, 1])
+                var node = new Node(c, r, input[r][c].Equals('S'), input[r][c].Equals('E'));
+                nodes.Add(node);
+
+                if (node.start)
                 {
-                    e.direction = i;
+                    start = node;
+                }
+                else if (node.end)
+                {
+                    end = node;
                 }
             }
-
-            node.connections.Add(e);
         }
     }
-    // Calculate heuristic distance to the end node
-    node.totalDistance = Math.Sqrt(Math.Pow(node.x - end.x, 2) + Math.Pow(node.y - end.y, 2));
+
+    // Create connections between adjacent nodes
+    foreach (var node in nodes)
+    {
+        foreach (var otherNode in nodes)
+        {
+            if (node != otherNode &&
+                ((Math.Abs(otherNode.x - node.x) <= 1 && otherNode.y == node.y) ||
+                (Math.Abs(otherNode.y - node.y) <= 1) && otherNode.x == node.x))
+            {
+                var e = new Edge(otherNode, 1);
+
+                for (var i = 0; i < 4; i++)
+                {
+                    if (otherNode.y - node.y == dirs[i, 0] && otherNode.x - node.x == dirs[i, 1])
+                    {
+                        e.direction = i;
+                    }
+                }
+
+                node.connections.Add(e);
+            }
+        }
+        // Calculate heuristic distance to the end node
+        node.totalDistance = Math.Sqrt(Math.Pow(node.x - end.x, 2) + Math.Pow(node.y - end.y, 2));
+    }
+
+    FindAllPaths();
+
+    return end.visited && end.minCostToStart != null ? end.minCostToStart.Value : int.MaxValue;
 }
 
-FindAllPaths();
-Console.WriteLine(end.minCostToStart);
+void buildPath(List<Node> nodes, Node node)
+{
+    if (node.nearestToStart == null)
+    {
+        return;
+    }
+
+    nodes.Add(node.nearestToStart);
+    buildPath(nodes, node.nearestToStart);
+}
 
 void FindAllPaths()
 {
