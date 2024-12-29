@@ -64,7 +64,17 @@ int FindShortestPath()
             }
         }
     }
-
-    Console.WriteLine("No path found from (0,0) to (6,6).");
+    
     return -1;
+}
+
+// Part 2
+for (int next = 1024; next < bytes.Length; next++)
+{
+    grid[bytes[next].Item2, bytes[next].Item1] = '#';
+    if (FindShortestPath() == -1)
+    {
+        Console.WriteLine($"{bytes[next].Item1},{bytes[next].Item2}");
+        break;
+    }
 }
