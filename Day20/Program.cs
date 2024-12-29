@@ -33,16 +33,13 @@ for (int i = 0; i < rows; i++)
 // Walk the path from S to E
 WalkPath(grid, start, end);
 
-// Find and list all valid cheating routes
-List<(int, int, int)> cheats = FindCheatingRoutes(grid);
-cheats.Sort((a, b) => a.Item3.CompareTo(b.Item3)); // Sort by steps saved
+// Part 1
+int validCheats = FindCheatingRoutes(grid, 2);
+Console.WriteLine(validCheats);
 
-Console.WriteLine("Cheats in order of steps saved:");
-foreach (var cheat in cheats)
-{
-    Console.WriteLine($"Cheat at ({cheat.Item1}, {cheat.Item2}) saves {cheat.Item3} steps.");
-}
-Console.WriteLine($"Total cheats: {cheats.Count}");
+// Part 2
+validCheats = FindCheatingRoutes(grid, 20);
+Console.WriteLine(validCheats);
 
 void WalkPath(int[,] grid, (int, int) start, (int, int) end)
 {
@@ -77,48 +74,41 @@ void WalkPath(int[,] grid, (int, int) start, (int, int) end)
     }
 }
 
-List<(int, int, int)> FindCheatingRoutes(int[,] grid)
+int FindCheatingRoutes(int[,] grid, int maxCheatSteps)
 {
     int rows = grid.GetLength(0);
     int cols = grid.GetLength(1);
-    var cheats = new List<(int, int, int)>();
+    int validCheats = 0;
 
-    for (int i = 1; i < rows - 1; i++)
+    for (int i = 0; i < rows; i++)
     {
-        for (int j = 1; j < cols - 1; j++)
+        for (int j = 0; j < cols; j++)
         {
-            if (grid[i, j] == -1) // Wall
+            if (grid[i, j] != -1 && grid[i, j] != int.MaxValue) // Track tile
             {
-                // Check vertical and horizontal neighbors
-                if ((grid[i - 1, j] != -1 && grid[i + 1, j] != -1) || (grid[i, j - 1] != -1 && grid[i, j + 1] != -1))
+                for (int x = 0; x < rows; x++)
                 {
-                    int minSteps = int.MaxValue;
-                    int maxSteps = int.MinValue;
-
-                    // Check vertical neighbors
-                    if (grid[i - 1, j] != -1 && grid[i + 1, j] != -1)
+                    for (int y = 0; y < cols; y++)
                     {
-                        minSteps = Math.Min(grid[i - 1, j], grid[i + 1, j]);
-                        maxSteps = Math.Max(grid[i - 1, j], grid[i + 1, j]);
-                    }
-
-                    // Check horizontal neighbors
-                    if (grid[i, j - 1] != -1 && grid[i, j + 1] != -1)
-                    {
-                        minSteps = Math.Min(minSteps, Math.Min(grid[i, j - 1], grid[i, j + 1]));
-                        maxSteps = Math.Max(maxSteps, Math.Max(grid[i, j - 1], grid[i, j + 1]));
-                    }
-
-                    // Calculate time saved by cheating
-                    int timeSaved = maxSteps - minSteps - 2;
-                    if (timeSaved >= 100)
-                    {
-                        cheats.Add((i, j, timeSaved));
+                        if (grid[x, y] != -1 && grid[x, y] != int.MaxValue && (i != x || j != y)) // Another track tile
+                        {
+                            int manhattanDistance = Math.Abs(i - x) + Math.Abs(j - y);
+                            if (manhattanDistance <= maxCheatSteps)
+                            {
+                                int originalStepsDifference = Math.Abs(grid[i, j] - grid[x, y]);
+                                int timeSaved = originalStepsDifference - manhattanDistance;
+                                if (timeSaved >= 100)
+                                {
+                                    validCheats++;
+                                }
+                            }
+                        }
                     }
                 }
             }
         }
     }
 
-    return cheats;
+    // Divide by 2 to account for counting each cheat twice
+    return validCheats / 2;
 }
